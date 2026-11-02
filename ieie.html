@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Maqueta Virtual: Onda Estacionaria</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f0ebd8; /* Fondo estilo mesa de trabajo */
+            color: #333;
+            margin-top: 25px;
+        }
+        h2 { 
+            color: #2c3e50; 
+            font-weight: bold; 
+            letter-spacing: 1px; 
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        /* Estilo de la estructura de cartón de la maqueta */
+        .maqueta-container {
+            display: inline-block;
+            background-color: #d4b483; /* Color cartón base */
+            padding: 20px;
+            border-radius: 10px;
+            border: 3px solid #b08d5b;
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.2), inset 0 0 40px rgba(139, 90, 43, 0.2);
+            position: relative;
+            background-image: repeating-linear-gradient(
+                to right,
+                transparent,
+                transparent 10px,
+                rgba(139, 90, 43, 0.05) 10px,
+                rgba(139, 90, 43, 0.05) 20px
+            ); /* Textura de cartón corrugado */
+        }
+        canvas {
+            background-color: #e4cda7; /* Color interior del cartón */
+            border: 2px solid #8b5a2b;
+            border-radius: 4px;
+            box-shadow: inset 2px 2px 10px rgba(0,0,0,0.1);
+            display: block;
+            margin-bottom: 15px;
+        }
+        .controls-container {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid #b08d5b;
+            text-align: left;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            width: 800px;
+            box-sizing: border-box;
+        }
+        .control-group {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            width: 48%;
+        }
+        label { font-size: 14px; font-weight: bold; width: 160px; color: #4a3b2c; }
+        input[type="range"] { 
+            width: 130px; 
+            cursor: pointer; 
+            accent-color: #d9534f; 
+        }
+        .value-display {
+            display: inline-block;
+            width: 50px;
+            text-align: right;
+            color: #d9534f;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .formula-box {
+            width: 100%;
+            background: #fff;
+            padding: 6px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px dashed #b08d5b;
+            text-align: center;
+            font-family: monospace;
+            font-size: 12px;
+            color: #2c3e50;
+        }
+        .buttons-info {
+            width: 100%;
+            text-align: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 2px dashed #b08d5b;
+        }
+        button {
+            padding: 9px 22px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover { 
+            background-color: #c9302c; 
+            transform: translateY(-2px);
+        }
+        .nodo-info { color: #555; font-size: 0.9em; margin-top: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>Maqueta Virtual: Onda Estacionaria</h2>
+    <div class="subtitle">Simulación basada en la ecuación de onda estacionaria: <i>y(x,t) = 2A · sin(kx) · cos(ωt)</i></div>
+    
+    <div class="maqueta-container">
+        <!-- El canvas con la estructura de cartón y motores originales -->
+        <canvas id="waveCanvas" width="800" height="280"></canvas>
+        
+        <div class="controls-container">
+            <!-- Amplitud -->
+            <div class="control-group">
+                <label>Amplitud (A):</label>
+                <input type="range" id="amplitude" min="10" max="80" value="45">
+                <span class="value-display" id="amp_val">45 mm</span>
+            </div>
+            <!-- Armónico (Nodos / Vientres) -->
+            <div class="control-group">
+                <label>Armónico (n):</label>
+                <input type="range" id="harmonic" min="1" max="6" value="2">
+                <span class="value-display" id="n_val">n = 2</span>
+            </div>
+            <!-- Frecuencia de los motores -->
+            <div class="control-group">
+                <label>Frecuencia motores (f):</label>
+                <input type="range" id="frequency" min="0.5" max="4" step="0.5" value="1.5">
+                <span class="value-display" id="freq_val">1.5 Hz</span>
+            </div>
+            <!-- Velocidad de animación -->
+            <div class="control-group">
+                <label>Velocidad de avance:</label>
+                <input type="range" id="speed" min="0.5" max="2.5" step="0.25" value="1">
+                <span class="value-display" id="speed_val">1.0x</span>
+            </div>
+
+            <!-- Cuadro dinámico con la fórmula aplicada -->
+            <div class="formula-box" id="formula_text">
+                y(x,t) = 2(45) · sin(kx) · cos(ωt)
+            </div>
+
+            <div class="buttons-info">
+                <button id="playPause">Pausar Motores</button>
+                <div class="nodo-info" id="info_text">2 Vientres y 3 Nodos (contando los anclajes de los motores)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('waveCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const amplitudeSlider = document.getElementById('amplitude');
+            const harmonicSlider = document.getElementById('harmonic');
+            const freqSlider = document.getElementById('frequency');
+            const speedSlider = document.getElementById('speed');
+            
+            const ampValLabel = document.getElementById('amp_val');
+            const nValLabel = document.getElementById('n_val');
+            const freqValLabel = document.getElementById('freq_val');
+            const speedValLabel = document.getElementById('speed_val');
+            const formulaText = document.getElementById('formula_text');
+            
+            const playPauseBtn = document.getElementById('playPause');
+            const infoText = document.getElementById('info_text');
+
+            let time = 0;
+            let isPlaying = true;
+            let animationId;
+
+            function drawMotor(x, y, isLeft, wTime) {
+                // Sombra del motor
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(x + 4, y - 22, 35, 44);
+
+                // Bloque del motor
+                ctx.fillStyle = '#4a4a4a';
+                ctx.fillRect(x, y - 25, 35, 50);
+                
+                // Detalles del motor
+                ctx.fillStyle = '#333';
+                ctx.fillRect(x + 4, y - 20, 27, 4);
+                ctx.fillRect(x + 4, y + 16, 27, 4);
+
+                // Eje rotatorio
+                const ejeX = isLeft ? x + 35 : x;
+                ctx.fillStyle = '#888';
+                ctx.beginPath();
+                ctx.arc(ejeX, y, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Punto rojo indicador de giro síncrono
+                const angle = isLeft ? wTime : -wTime;
+                const dotX = ejeX + Math.cos(angle) * 5;
+                const dotY = y + Math.sin(angle) * 5;
+                
+                ctx.fillStyle = '#d9534f';
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function drawWave() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Obtener valores de los controles originales
+                const A = parseFloat(amplitudeSlider.value);
+                const n = parseInt(harmonicSlider.value);
+                const f = parseFloat(freqSlider.value);
+                const speedMult = parseFloat(speedSlider.value);
+                
+                const offsetX = 50;
+                const L = canvas.width - (offsetX * 2); // Longitud física de la cuerda
+                const centerY = canvas.height / 2;
+
+                // Cálculos físicos reales
+                const k = (n * Math.PI) / L; // Número de onda
+                const omega = 2 * Math.PI * f; // Frecuencia angular
+
+                // Actualizar texto de la fórmula en tiempo real
+                formulaText.innerHTML = `y(x,t) = 2(${A}) · sin(${k.toFixed(3)}x) · cos(${omega.toFixed(1)}t)`;
+
+                // Dibujar motores con rotación sincronizada a la frecuencia
+                const wAnim = omega * 0.05 * time; 
+                drawMotor(15, centerY, true, wAnim);
+                drawMotor(canvas.width - 50, centerY, false, wAnim);
+
+                // Línea de equilibrio (guía punteada)
+                ctx.beginPath();
+                ctx.moveTo(offsetX, centerY);
+                ctx.lineTo(offsetX + L, centerY);
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.setLineDash([4, 4]);
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.setLineDash([]); 
+
+                // Sombra de la cuerda (Efecto 3D sobre el cartón)
+                ctx.beginPath();
+                for (let x = 0; x <= L; x++) {
+                    const y = centerY - (A * Math.sin(k * x) * Math.cos(omega * (time * 0.02)));
+                    if (x === 0) ctx.moveTo(x + offsetX, y + 8);
+                    else ctx.lineTo(x + offsetX, y + 8);
+                }
+                ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // Cuerda elástica real (blanca con borde)
+                ctx.beginPath();
+                for (let x = 0; x <= L; x++) {
+                    const y = centerY - (A * Math.sin(k * x) * Math.cos(omega * (time * 0.02)));
+                    if (x === 0) ctx.moveTo(x + offsetX, y);
+                    else ctx.lineTo(x + offsetX, y);
+                }
+                ctx.strokeStyle = '#f8f9fa';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                ctx.strokeStyle = '#bbb';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Dibujar los nodos en las posiciones exactas
+                ctx.fillStyle = '#2c3e50';
+                for (let i = 0; i <= n; i++) {
+                    const nodoX = (i * (L / n)) + offsetX;
+                    ctx.beginPath();
+                    ctx.arc(nodoX, centerY, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                if (isPlaying) {
+                    time += speedMult;
+                    animationId = requestAnimationFrame(drawWave);
+                }
+            }
+
+            // --- LISTENERS DE LOS CONTROLES ---
+            amplitudeSlider.addEventListener('input', (e) => {
+                ampValLabel.textContent = e.target.value + " mm";
+                if (!isPlaying) drawWave();
+            });
+
+            harmonicSlider.addEventListener('input', (e) => {
+                const val = e.target.value;
+                nValLabel.textContent = "n = " + val;
+                infoText.textContent = `${val} Vientre(s) y ${parseInt(val) + 1} Nodos (contando los anclajes de los motores)`;
+                if (!isPlaying) drawWave();
+            });
+
+            freqSlider.addEventListener('input', (e) => {
+                freqValLabel.textContent = parseFloat(e.target.value).toFixed(1) + " Hz";
+                if (!isPlaying) drawWave();
+            });
+
+            speedSlider.addEventListener('input', (e) => {
+                speedValLabel.textContent = parseFloat(e.target.value).toFixed(2) + "x";
+            });
+
+            playPauseBtn.addEventListener('click', () => {
+                isPlaying = !isPlaying;
+                playPauseBtn.textContent = isPlaying ? 'Pausar Motores' : 'Encender Motores';
+                playPauseBtn.style.backgroundColor = isPlaying ? '#d9534f' : '#5cb85c';
+                if (isPlaying) drawWave();
+                else cancelAnimationFrame(animationId);
+            });
+
+            drawWave();
+        });
+    </script>
+</body>
+</html>
