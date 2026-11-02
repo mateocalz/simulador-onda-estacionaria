@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulador de Onda Estacionaria</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin-top: 40px;
+        }
+        canvas {
+            background-color: white;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 100%;
+        }
+        .controls {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            display: inline-block;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        input[type="range"] {
+            width: 200px;
+            vertical-align: middle;
+        }
+        button {
+            padding: 8px 16px;
+            margin-left: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover { background-color: #0056b3; }
+        .nodo-info { color: #666; font-size: 0.9em; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>Simulador Físico: Onda Estacionaria</h2>
+    <canvas id="waveCanvas" width="800" height="300"></canvas>
+    
+    <div class="controls">
+        <label for="harmonic" style="font-size: 18px; font-weight: bold;">
+            Armónico (n): <span id="n_val">2</span>
+        </label>
+        <input type="range" id="harmonic" min="1" max="5" value="2">
+        <button id="playPause">Pausar</button>
+        <div class="nodo-info" id="info_text">2 Vientres y 3 Nodos (contando los extremos)</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('waveCanvas');
+        const ctx = canvas.getContext('2d');
+        const harmonicSlider = document.getElementById('harmonic');
+        const nValLabel = document.getElementById('n_val');
+        const playPauseBtn = document.getElementById('playPause');
+        const infoText = document.getElementById('info_text');
+
+        let time = 0;
+        let isPlaying = true;
+        let animationId;
+
+        function drawWave() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const n = parseInt(harmonicSlider.value);
+            const L = canvas.width;
+            const A = 60; // Amplitud máxima (2A en la fórmula)
+            const centerY = canvas.height / 2;
+            
+            // Dibujar la línea de equilibrio (cuerda en reposo)
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(L, centerY);
+            ctx.strokeStyle = '#cccccc';
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]); // Resetear guiones
+
+            // Dibujar la onda estacionaria
+            ctx.beginPath();
+            for (let x = 0; x <= L; x++) {
+                // Frecuencia angular que aumenta un poco con el armónico para mayor realismo
+                const w = 0.08 + (n * 0.02); 
+                const k = (n * Math.PI) / L; // Número de onda
+                
+                // Fórmula de la onda estacionaria: y = 2A * sin(kx) * cos(wt)
+                const y = centerY - (A * Math.sin(k * x) * Math.cos(w * time));
+                
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            
+            ctx.strokeStyle = '#e63946'; // Color rojo brillante
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Dibujar los nodos (puntos fijos)
+            ctx.fillStyle = '#1d3557';
+            for (let i = 0; i <= n; i++) {
+                const nodoX = i * (L / n);
+                ctx.beginPath();
+                ctx.arc(nodoX, centerY, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            if (isPlaying) {
+                time += 1;
+                animationId = requestAnimationFrame(drawWave);
+            }
+        }
+
+        // Actualizar valores cuando se mueve el deslizador
+        harmonicSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            nValLabel.textContent = val;
+            infoText.textContent = `${val} Vientre(s) y ${parseInt(val) + 1} Nodos (contando los extremos)`;
+            if (!isPlaying) drawWave(); // Redibujar si está pausado
+        });
+
+        // Botón de Pausa / Reproducir
+        playPauseBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            playPauseBtn.textContent = isPlaying ? 'Pausar' : 'Reproducir';
+            if (isPlaying) drawWave();
+            else cancelAnimationFrame(animationId);
+        });
+
+        // Iniciar la animación
+        drawWave();
+    </script>
+</body>
+</html>
